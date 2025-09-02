@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"os"
+	"time"
 )
 
 func NewPool() (*pgxpool.Pool, error) {
@@ -31,9 +32,12 @@ func NewPool() (*pgxpool.Pool, error) {
 	return dbPool, nil
 }
 
+// Insert ...
 func Insert(note entity.Note) (int, error) {
 	pool, err := NewPool()
 	if err != nil {
+		log.Println("failed connection to db", err)
+		pool = Reconnect()
 		return 0, fmt.Errorf("unable to insert: %v\n", err)
 	}
 
@@ -47,4 +51,25 @@ func Insert(note entity.Note) (int, error) {
 	}
 
 	return id, nil
+}
+
+// Reconnect trying to сonnect 3 times with 2 seconds interval to database if connection was lost
+func Reconnect() *pgxpool.Pool {
+	var err error
+	var pool *pgxpool.Pool
+	for i := 0; i <= 3; i++ {
+		pool, err = NewPool()
+
+		if err == nil {
+			err = pool.Ping(context.Background())
+			if err == nil {
+				log.Println("reconnected to db successfully!")
+				return pool
+			}
+		}
+		time.Sleep(2 * time.Second)
+	}
+
+	log.Fatal("unable to connect to db")
+	return nil
 }
