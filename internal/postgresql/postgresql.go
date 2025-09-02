@@ -34,16 +34,14 @@ func NewPool() (*pgxpool.Pool, error) {
 
 // Insert ...
 func Insert(note entity.Note) (int, error) {
-	pool, err := NewPool()
+	pool, err := ConnectWithRetry(3)
 	if err != nil {
-		log.Println("failed connection to db", err)
-		pool = Reconnect()
-		return 0, fmt.Errorf("unable to insert: %v\n", err)
+		log.Fatal(err)
 	}
 
 	defer pool.Close()
 	row := pool.QueryRow(context.Background(), "insert into notes (Title, Body, Tag) values ($1, $2, $3) returning ID",
-		note.GetTitle(), note.GetBody(), note.GetTag())
+		note.Title, note.Body, note.Tag)
 	var id int
 	err = row.Scan(&id)
 	if err != nil {
@@ -53,23 +51,45 @@ func Insert(note entity.Note) (int, error) {
 	return id, nil
 }
 
-// Reconnect trying to сonnect 3 times with 2 seconds interval to database if connection was lost
-func Reconnect() *pgxpool.Pool {
+// GetAll ...
+func GetAll() (*[]entity.Note, error) {
+	pool, err := ConnectWithRetry(3)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var notes []entity.Note
+	defer pool.Close()
+	rows, err := pool.Query(context.Background(), "select * from notes")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		note := entity.Note{}
+		err = rows.Scan(&note.ID, &note.Title, &note.Body, &note.Tag)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		notes = append(notes, note)
+	}
+	if len(notes) == 0 {
+		return nil, fmt.Errorf("empty table db")
+	}
+	return &notes, nil
+}
+
+// ConnectWithRetry trying to сonnect 3 times with 2 seconds interval to database
+func ConnectWithRetry(maxAttempts int) (*pgxpool.Pool, error) {
 	var err error
 	var pool *pgxpool.Pool
-	for i := 0; i <= 3; i++ {
+	for i := 1; i <= maxAttempts; i++ {
 		pool, err = NewPool()
-
 		if err == nil {
-			err = pool.Ping(context.Background())
-			if err == nil {
-				log.Println("reconnected to db successfully!")
-				return pool
-			}
+			return pool, nil
 		}
 		time.Sleep(2 * time.Second)
 	}
-
-	log.Fatal("unable to connect to db")
-	return nil
+	return nil, fmt.Errorf("unable to connect to db: %v\n", err)
 }
