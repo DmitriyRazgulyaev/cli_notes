@@ -1,17 +1,24 @@
-package postgresql
+package postgres
 
 import (
 	"cli_notes/internal/entity"
 	"context"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 	"log"
 	"os"
+	"strconv"
 	"time"
 )
 
 func NewPool() (*pgxpool.Pool, error) {
-
+	err := godotenv.Load("/Users/dmitriyrazgulyaev/GolandProjects/cli_notes/.env")
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		os.Getenv("DB_HOST_IP"),
 		os.Getenv("DB_PORT"),
@@ -80,7 +87,35 @@ func GetAll() (*[]entity.Note, error) {
 	return &notes, nil
 }
 
-// ConnectWithRetry trying to сonnect 3 times with 2 seconds interval to database
+// DeleteFromBD ...
+func DeleteFromBD(arg string, key string) (int64, error) {
+	pool, err := ConnectWithRetry(3)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var result pgconn.CommandTag
+	defer pool.Close()
+	switch key {
+	case "id":
+		var id int
+		id, err = strconv.Atoi(arg)
+		if err != nil {
+			return 0, err
+		}
+		result, err = pool.Exec(context.Background(), "delete from notes where id = $1", id)
+	case "title":
+		result, err = pool.Exec(context.Background(), "delete from notes where title = $1", arg)
+	case "tag":
+		result, err = pool.Exec(context.Background(), "delete from notes where tag = $1", arg)
+	}
+	if err != nil {
+		return 0, fmt.Errorf("can`t delete by %s: %v\n", key, err)
+	}
+	return result.RowsAffected(), nil
+
+}
+
+// ConnectWithRetry trying to connect 3 times with 2 seconds interval to database
 func ConnectWithRetry(maxAttempts int) (*pgxpool.Pool, error) {
 	var err error
 	var pool *pgxpool.Pool

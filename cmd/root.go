@@ -4,6 +4,7 @@ import (
 	"cli_notes/internal/service"
 	"fmt"
 	"github.com/spf13/cobra"
+	"log"
 	"os"
 )
 
@@ -23,7 +24,61 @@ var addCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		fmt.Println(id)
+		fmt.Printf("note added successfully with id: %d\n", id)
+	},
+}
+
+var listCmd = &cobra.Command{
+	Use:   "list",
+	Short: "list all notes",
+	Long:  "list all notes from db to console in order: ID, Title, Body, Tag",
+	Args:  cobra.ExactArgs(0),
+	Run: func(cmd *cobra.Command, args []string) {
+		err := service.List()
+		if err != nil {
+			log.Fatal(err)
+		}
+	},
+}
+
+var deleteCmd = &cobra.Command{
+	Use:   "delete",
+	Short: "delete note/notes",
+	Long:  "delete note/notes by key (id, title, tag)",
+	Args:  cobra.ExactArgs(0),
+	Run: func(cmd *cobra.Command, args []string) {
+
+		id, err := cmd.Flags().GetString("id")
+		if err != nil {
+			log.Fatal(err)
+		}
+		title, err := cmd.Flags().GetString("title")
+		if err != nil {
+			log.Fatal(err)
+		}
+		tag, err := cmd.Flags().GetString("tag")
+		if err != nil {
+			log.Fatal(err)
+		}
+		var res int64
+		switch {
+		case len(id) > 0:
+			res, err = service.Delete(id, "id")
+		case len(title) > 0:
+			res, err = service.Delete(title, "title")
+		case len(tag) > 0:
+			res, err = service.Delete(tag, "tag")
+		default:
+			fmt.Println("no key provided")
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		if res == 0 {
+			fmt.Println("no one note was found with this arguments")
+		}
+		fmt.Printf("notes was successfully deleted: %d\n", res)
+
 	},
 }
 
@@ -60,6 +115,12 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	//rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.AddCommand(addCmd)
+	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(deleteCmd)
+	deleteCmd.Flags().String("id", "", "delete note by id")
+	deleteCmd.Flags().String("title", "", "delete note by title")
+	deleteCmd.Flags().String("tag", "", "delete note by tag")
+
 }

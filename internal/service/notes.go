@@ -2,7 +2,7 @@ package service
 
 import (
 	"cli_notes/internal/entity"
-	"cli_notes/internal/postgresql"
+	"cli_notes/internal/postgres"
 	"fmt"
 	"log"
 	"os"
@@ -16,7 +16,7 @@ func Add(title string, body string, tag string) (int, error) {
 		return 0, fmt.Errorf("title length too long")
 	}
 	note := entity.NewNote(title, body, tag)
-	id, err := postgresql.Insert(*note)
+	id, err := postgres.Insert(*note)
 	if err != nil {
 		return 0, fmt.Errorf("unable to add note: %v\n", err)
 	}
@@ -24,8 +24,12 @@ func Add(title string, body string, tag string) (int, error) {
 }
 
 // Delete ...
-func Delete() {
-
+func Delete(arg string, key string) (int64, error) {
+	res, err := postgres.DeleteFromBD(arg, key)
+	if err != nil {
+		return 0, err
+	}
+	return res, nil
 }
 
 // Edit ...
@@ -35,7 +39,7 @@ func Edit() {
 
 // List ...
 func List() error {
-	notes, err := postgresql.GetAll()
+	notes, err := postgres.GetAll()
 	if err != nil {
 		log.Fatal(err)
 	}
