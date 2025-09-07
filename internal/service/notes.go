@@ -33,7 +33,33 @@ func Delete(arg string, key string) (int64, error) {
 }
 
 // Edit ...
-func Edit() {
+func Edit(flag, arg, change string) (*entity.Note, error) {
+	note, err := postgres.Get(flag, arg)
+	if err != nil {
+		return nil, err
+	}
+	var newValue string
+	fmt.Print("input new value: ")
+	fmt.Scan(&newValue)
+	switch change {
+	case "title":
+		if len(newValue) > 30 {
+			return nil, fmt.Errorf("too long title (must be less than 30 chars)")
+		}
+		note.Title = newValue
+	case "body":
+		note.Body = newValue
+	case "tag":
+		if len(newValue) > 30 {
+			return nil, fmt.Errorf("too long tag (must be less than 30 chars)")
+		}
+		note.Tag = newValue
+	}
+	_, err = postgres.Insert(*note)
+	if err != nil {
+		return nil, err
+	}
+	return note, nil
 
 }
 

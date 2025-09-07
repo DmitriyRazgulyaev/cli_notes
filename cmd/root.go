@@ -8,6 +8,13 @@ import (
 	"os"
 )
 
+const (
+	idFlag    = "id"
+	titleFlag = "title"
+	tagFlag   = "tag"
+	bodyFlag  = "body"
+)
+
 var addCmd = &cobra.Command{
 	Use:   "add",
 	Short: "add note (exact args position: title, body, tags)",
@@ -82,6 +89,79 @@ var deleteCmd = &cobra.Command{
 	},
 }
 
+var editCmd = &cobra.Command{
+	Use:   "edit",
+	Short: "edit note by name",
+	Long:  "edit note name, body or tag by name",
+	Args:  cobra.ExactArgs(0),
+	Run: func(cmd *cobra.Command, args []string) {
+		title, err := cmd.Flags().GetString("t")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		id, err := cmd.Flags().GetString("i")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var flag, arg string
+
+		switch {
+		case len(title) > 0:
+			flag = "title"
+			arg = title
+		case len(id) > 0:
+			flag = "id"
+			arg = id
+		default:
+			log.Fatal("no searching flag given")
+		}
+		// getting value flag that will be changed
+		var valueToEdit bool
+		valueToEdit, err = cmd.Flags().GetBool(bodyFlag)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if valueToEdit == true {
+			_, err = service.Edit(flag, arg, bodyFlag)
+			if err != nil {
+				log.Fatal(err)
+			}
+			return
+		}
+
+		valueToEdit, err = cmd.Flags().GetBool(titleFlag)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if valueToEdit == true {
+			_, err = service.Edit(flag, arg, titleFlag)
+			if err != nil {
+				log.Fatal(err)
+			}
+			return
+		}
+
+		valueToEdit, err = cmd.Flags().GetBool(tagFlag)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if valueToEdit == true {
+			_, err = service.Edit(flag, arg, tagFlag)
+			if err != nil {
+				log.Fatal(err)
+			}
+			return
+		}
+		log.Fatal("no flag to edit given")
+
+	},
+}
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "cli_notes",
@@ -119,8 +199,17 @@ func init() {
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(deleteCmd)
-	deleteCmd.Flags().String("id", "", "delete note by id")
-	deleteCmd.Flags().String("title", "", "delete note by title")
-	deleteCmd.Flags().String("tag", "", "delete note by tag")
+	rootCmd.AddCommand(editCmd)
+
+	deleteCmd.Flags().String(idFlag, "", "delete note by id")
+	deleteCmd.Flags().String(titleFlag, "", "delete note by title")
+	deleteCmd.Flags().String(tagFlag, "", "delete note by tag")
+
+	editCmd.Flags().Bool(bodyFlag, false, "edit note's body")
+	editCmd.Flags().Bool(titleFlag, false, "edit note's title")
+	editCmd.Flags().Bool(tagFlag, false, "edit note's tag")
+
+	editCmd.Flags().String("i", "", "search note by id")
+	editCmd.Flags().String("t", "", "search note by title")
 
 }
