@@ -5,6 +5,7 @@ type Note struct {
 	Title string
 	Body  string
 	Tag   string
+	Done  bool
 }
 
 // NewNote ...
@@ -14,5 +15,6 @@ func NewNote(title string, body string, tag string) *Note {
 		Title: title,
 		Body:  body,
 		Tag:   tag,
+		Done:  true,
 	}
 }

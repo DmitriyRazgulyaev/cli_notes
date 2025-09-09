@@ -118,40 +118,40 @@ var editCmd = &cobra.Command{
 			log.Fatal("no searching flag given")
 		}
 		// getting value flag that will be changed
-		var valueToEdit bool
-		valueToEdit, err = cmd.Flags().GetBool(bodyFlag)
+		var newValue string
+		newValue, err = cmd.Flags().GetString(bodyFlag)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		if valueToEdit == true {
-			_, err = service.Edit(flag, arg, bodyFlag)
+		if len(newValue) > 0 {
+			_, err = service.Edit(flag, arg, bodyFlag, newValue)
 			if err != nil {
 				log.Fatal(err)
 			}
 			return
 		}
 
-		valueToEdit, err = cmd.Flags().GetBool(titleFlag)
+		newValue, err = cmd.Flags().GetString(titleFlag)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		if valueToEdit == true {
-			_, err = service.Edit(flag, arg, titleFlag)
+		if len(newValue) > 0 {
+			_, err = service.Edit(flag, arg, titleFlag, newValue)
 			if err != nil {
 				log.Fatal(err)
 			}
 			return
 		}
 
-		valueToEdit, err = cmd.Flags().GetBool(tagFlag)
+		newValue, err = cmd.Flags().GetString(tagFlag)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		if valueToEdit == true {
-			_, err = service.Edit(flag, arg, tagFlag)
+		if len(newValue) > 0 {
+			_, err = service.Edit(flag, arg, tagFlag, newValue)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -159,6 +159,22 @@ var editCmd = &cobra.Command{
 		}
 		log.Fatal("no flag to edit given")
 
+	},
+}
+
+var doneCmd = &cobra.Command{
+	Use:   "done",
+	Short: "mark note as done/undone",
+	Long:  "mark note as done",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		title := args[0]
+		done, err := cmd.Flags().GetBool("undone")
+		if err != nil {
+			log.Fatal(err)
+		}
+		//if undone flag is true need to set false so ! is necessary
+		err = service.Done(title, !done)
 	},
 }
 
@@ -200,16 +216,19 @@ func init() {
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(deleteCmd)
 	rootCmd.AddCommand(editCmd)
+	rootCmd.AddCommand(doneCmd)
 
 	deleteCmd.Flags().String(idFlag, "", "delete note by id")
 	deleteCmd.Flags().String(titleFlag, "", "delete note by title")
 	deleteCmd.Flags().String(tagFlag, "", "delete note by tag")
 
-	editCmd.Flags().Bool(bodyFlag, false, "edit note's body")
-	editCmd.Flags().Bool(titleFlag, false, "edit note's title")
-	editCmd.Flags().Bool(tagFlag, false, "edit note's tag")
+	editCmd.Flags().String(bodyFlag, "", "edit note's body")
+	editCmd.Flags().String(titleFlag, "", "edit note's title")
+	editCmd.Flags().String(tagFlag, "", "edit note's tag")
 
 	editCmd.Flags().String("i", "", "search note by id")
 	editCmd.Flags().String("t", "", "search note by title")
+
+	doneCmd.Flags().BoolP("undone", "u", false, "set done on note")
 
 }

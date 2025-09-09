@@ -53,11 +53,11 @@ func Insert(note entity.Note) (int, error) {
 	var row pgx.Row
 	defer pool.Close()
 	if note.ID == -1 {
-		row = pool.QueryRow(context.Background(), "insert into notes (Title, Body, Tag) values ($1, $2, $3) returning ID",
-			note.Title, note.Body, note.Tag)
+		row = pool.QueryRow(context.Background(), "insert into notes (Title, Body, Tag, Done) values ($1, $2, $3, $4) returning ID",
+			note.Title, note.Body, note.Tag, note.Done)
 	} else {
-		row = pool.QueryRow(context.Background(), "update notes set title = $1, body = $2, tag = $3 where id = $4 returning ID",
-			note.Title, note.Body, note.Tag, note.ID)
+		row = pool.QueryRow(context.Background(), "update notes set title = $1, body = $2, tag = $3, done = $4 where id = $5 returning ID",
+			note.Title, note.Body, note.Tag, note.Done, note.ID)
 	}
 	var id int
 	err = row.Scan(&id)
@@ -77,7 +77,7 @@ func Get(flag, arg string) (*entity.Note, error) {
 	defer pool.Close()
 	row := pool.QueryRow(context.Background(), sql, arg)
 	note := &entity.Note{}
-	err = row.Scan(&note.ID, &note.Title, &note.Body, &note.Tag)
+	err = row.Scan(&note.ID, &note.Title, &note.Body, &note.Tag, &note.Done)
 	if err != nil {
 		return nil, fmt.Errorf("error with getting row: %v\n", err)
 	}
@@ -100,7 +100,7 @@ func GetAll() (*[]entity.Note, error) {
 	defer rows.Close()
 	for rows.Next() {
 		note := entity.Note{}
-		err = rows.Scan(&note.ID, &note.Title, &note.Body, &note.Tag)
+		err = rows.Scan(&note.ID, &note.Title, &note.Body, &note.Tag, &note.Done)
 		if err != nil {
 			log.Println(err)
 			continue
